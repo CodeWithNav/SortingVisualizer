@@ -1,7 +1,7 @@
 import '../util/list_item.dart';
 
 class SortingAlgo {
-  static const algorithms = ["bubbleSort", "quickSort"];
+  static const algorithms = ["BubbleSort", "QuickSort"];
   _swap(List<ListItem> list, int i, int j, List<Operation> operation) {
     ListItem temp = list[i];
     list[i] = list[j];

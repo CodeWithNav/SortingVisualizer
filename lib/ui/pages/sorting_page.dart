@@ -35,11 +35,11 @@ class _SortingPageState extends State<SortingPage> {
     if (sorting) {
       if (currentOp != null) {
         if (currentOp!.operationType == OperationType.swap) {
-          if (currentOp!.item1 == index) return const Color(0xffEF5B0C);
-          if (currentOp!.item2 == index) return const Color(0xffD4F6CC);
+          if (currentOp!.item1 == index) return const Color(0xffffdca7);
+          if (currentOp!.item2 == index) return const Color(0xff8fd3ff);
         } else if (currentOp!.operationType == OperationType.compare) {
-          if (currentOp!.item1 == index) return const Color(0xff3AB4F2);
-          if (currentOp!.item2 == index) return const Color(0xffFEB139);
+          if (currentOp!.item1 == index) return const Color(0xff1db3ff);
+          if (currentOp!.item2 == index) return const Color(0xffffa013);
         }
       }
       return const Color(0xffA5C9CA);
@@ -48,10 +48,30 @@ class _SortingPageState extends State<SortingPage> {
   }
 
   String selectedAlgo = SortingAlgo.algorithms[0];
-  void animate(List<Operation> operation) async {
+  bool stop = false;
+  int currentIndex = 0;
+  List<Operation> currOperation = [];
+  void reset() {
+    stop = false;
+    currentIndex = 0;
+    currOperation = [];
+    sorting = false;
+    size = 10;
+    generateRandomList();
+    setState(() {});
+  }
+
+  void animate(List<Operation> operation, {int startFrom = 0}) async {
     sorting = true;
-    for (var element in operation) {
+    stop = false;
+    for (int i = startFrom; i < operation.length; i++) {
+      Operation element = operation[i];
       currentOp = element;
+      currentIndex = i;
+      if (stop) {
+        currOperation = operation;
+        return;
+      }
 
       if (element.operationType == OperationType.swap) {
         ListItem temp =
@@ -72,14 +92,25 @@ class _SortingPageState extends State<SortingPage> {
   int maxValue = 0;
   startSorting() {
     switch (selectedAlgo) {
-      case "bubbleSort":
+      case "BubbleSort":
         animate(sortingAlgo.bubbleSort(data));
         break;
-      case "quickSort":
+      case "QuickSort":
         animate(sortingAlgo.quickSort(data));
         break;
       default:
     }
+  }
+
+  startStopAnimation() {
+    if (stop) {
+      stop = !stop;
+      animate(currOperation, startFrom: currentIndex);
+    } else {
+      stop = !stop;
+    }
+
+    setState(() {});
   }
 
   @override
@@ -96,77 +127,165 @@ class _SortingPageState extends State<SortingPage> {
   Widget build(BuildContext context) {
     baseHeight = MediaQuery.of(context).size.height - 300;
     return Scaffold(
-        body: Column(
-      mainAxisSize: MainAxisSize.max,
-      children: [
-        Container(
-          width: MediaQuery.of(context).size.width,
-          color: Theme.of(context).colorScheme.primary,
-          child: Wrap(
-            children: [
-              const Text("Select Algorithm "),
-              const SizedBox(
-                width: 10,
-              ),
-              DropdownButton<String>(
-                value: selectedAlgo,
-                items: SortingAlgo.algorithms
-                    .map((e) => DropdownMenuItem<String>(
-                          value: e,
-                          child: Text(e),
-                        ))
-                    .toList(),
-                onChanged: (String? value) {
-                  if (value != null && selectedAlgo != value) {
-                    setState(() {
-                      selectedAlgo = value;
-                    });
-                  }
-                },
-              ),
-              PrimaryButton(
-                  onPressed: () {
-                    startSorting();
-                  },
-                  child: const Text("Sort"))
-            ],
-          ),
+        appBar: AppBar(
+          title: const Text("Sorting visualizer"),
         ),
-        Expanded(
-          child: SizedBox(
-            width: MediaQuery.of(context).size.width - 100,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
+        body: Column(
+          mainAxisSize: MainAxisSize.max,
+          children: [
+            Wrap(
               children: [
-                for (int i = 0; i < data.length; i++) ...[
-                  Expanded(
-                      // key: Key("$i}_${data[i].value}"),
-                      child: Container(
-                    height: (baseHeight * (data[i].value / maxValue)) + 50,
-                    color: getColor(i),
-                    // child: Center(
-                    //     child: Text(
-                    //   "${data[i].value}",
-                    //   overflow: TextOverflow.fade,
-                    // )),
-                  ))
-                ],
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text(
+                          "Select Sorting Algorithm",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(
+                          width: 5,
+                        ),
+                        DropdownButton<String>(
+                          icon: Icon(
+                            Icons.arrow_drop_down,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                          underline: Container(
+                            color: Theme.of(context).colorScheme.primary,
+                            height: 1,
+                          ),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                          value: selectedAlgo,
+                          items: SortingAlgo.algorithms
+                              .map((e) => DropdownMenuItem<String>(
+                                    value: e,
+                                    child: Text(e),
+                                  ))
+                              .toList(),
+                          onChanged: (String? value) {
+                            if (!sorting &&
+                                value != null &&
+                                selectedAlgo != value) {
+                              setState(() {
+                                selectedAlgo = value;
+                              });
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text(
+                          "Set Animation Speed",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(
+                          width: 4,
+                        ),
+                        Slider(
+                            min: 0.5,
+                            max: 2,
+                            label: "x$speed",
+                            divisions: 3,
+                            value: speed,
+                            onChanged: (value) {
+                              if (!sorting && value != speed) {
+                                setState(() {
+                                  speed = value;
+                                });
+                              }
+                            })
+                      ],
+                    ),
+                  ),
+                ),
+                if (!sorting)
+                  PrimaryButton(
+                      onPressed: () {
+                        startSorting();
+                      },
+                      title: "Start Sorting"),
+                if (sorting)
+                  PrimaryButton(
+                      onPressed: () {
+                        startStopAnimation();
+                      },
+                      title: stop ? "Resume" : "Pause"),
+                if (sorting && stop)
+                  PrimaryButton(
+                      onPressed: () {
+                        reset();
+                      },
+                      title: "Reset")
               ],
             ),
-          ),
-        ),
-        Slider(
-            max: 300,
-            min: 5,
-            value: size.toDouble(),
-            onChanged: (newValue) {
-              if (size == newValue) return;
-              setState(() {
-                size = newValue.toInt();
-                generateRandomList();
-              });
-            })
-      ],
-    ));
+            Expanded(
+              child: SizedBox(
+                width: MediaQuery.of(context).size.width - 100,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    for (int i = 0; i < data.length; i++) ...[
+                      Expanded(
+                          // key: Key("$i ${data[i].value}"),
+                          child: Container(
+                        height: (baseHeight * (data[i].value / maxValue)) + 50,
+                        color: getColor(i),
+                        // child: Center(
+                        //     child: Text(
+                        //   "${data[i].value}",
+                        //   overflow: TextOverflow.fade,
+                        // )),
+                      ))
+                    ],
+                  ],
+                ),
+              ),
+            ),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Row(
+                  mainAxisSize: MainAxisSize.max,
+                  children: [
+                    Text("Set Random Input Range : $size"),
+                    Expanded(
+                      child: Slider(
+                          max: 300,
+                          min: 5,
+                          value: size.toDouble(),
+                          onChanged: (newValue) {
+                            if (sorting || size == newValue) return;
+                            setState(() {
+                              size = newValue.toInt();
+                              generateRandomList();
+                            });
+                          }),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          ],
+        ));
   }
 }
